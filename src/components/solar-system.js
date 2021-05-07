@@ -56,7 +56,7 @@ export const Sol = ({ dt = 0.1 }) => {
       <pointLight />
       {/* Render planets */}
       {planetPositions.map((planetPosition, idx) => (
-        <mesh key={idx}>
+        <mesh key={idx} position={planetPosition}>
           {/* Sphere args: radius, segments */}
           <sphereBufferGeometry
             args={[idx === 0 ? 0.4 : data.planets[idx].r * 1000, 30, 30]}
