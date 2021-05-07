@@ -1,20 +1,24 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import data from "../planet-data.json";
+import { extend, useThree } from "react-three-fiber";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 const numOfPlanets = data.planets.length;
-
-const numberOfPlanets = data.planets.length;
 
 const xPosInitialArray = data.planets.map((planet) => planet.x);
 const velocityInitialArray = data.planets.map((planet) => planet.v);
 const masses = data.planets.map((planet) => planet.m);
-const xPosInitial = tf.tensor2d(xPosInitialArray, [numberOfPlanets, 3]);
-const velocityInitial = tf.tensor2d(velocityInitialArray, [numberOfPlanets, 3]);
+
+const xPosInitial = tf.tensor2d(xPosInitialArray, [numOfPlanets, 3]);
+const velocityInitial = tf.tensor2d(velocityInitialArray, [numOfPlanets, 3]);
 const G = tf.scalar(data.G);
 
+// Extend will make OrbitControls available as a JSX element called orbitControls for us to use.
+extend({ OrbitControls });
+
 export const Sol = ({ dt = 0.1 }) => {
-  const [pos, setPos] = useState(xPosInitialArray);
+  const [planetPositions, setPos] = useState(xPosInitialArray);
   // useRef to prevent re-render on change
   const xPos = useRef(xPosInitial);
   const velocity = useRef(velocityInitial);
@@ -23,7 +27,7 @@ export const Sol = ({ dt = 0.1 }) => {
   const compute = useCallback(() => {
     // release from memory
     const [newXPos, newVelocity] = tf.tidy(() => {
-      const acceleration = calcAcceleration(xPosInitial);
+      const acceleration = calcAcceleration(xPos.current);
       const newXPos = xPos.current.add(tf.mul(velocity.current, dtTensor));
       const newVelocity = velocity.current.add(tf.mul(acceleration, dtTensor));
 
@@ -40,14 +44,37 @@ export const Sol = ({ dt = 0.1 }) => {
     newXPos.array().then((newPos) => {
       setPos(newPos);
     });
-  });
+  }, [xPos, velocity, dtTensor]);
   compute();
-  return <div></div>;
+
+  const { camera } = useThree();
+
+  return (
+    <group>
+      <orbitControls args={[camera]} />
+      <ambientLight />
+      <pointLight />
+      {/* Render planets */}
+      {planetPositions.map((planetPosition, idx) => (
+        <mesh key={idx}>
+          {/* Sphere args: radius, segments */}
+          <sphereBufferGeometry
+            args={[idx === 0 ? 0.4 : data.planets[idx].r * 1000, 30, 30]}
+            attach="geometry"
+          />
+          <meshStandardMaterial
+            color={data.planets[idx].color}
+            attach="material"
+          />
+        </mesh>
+      ))}
+    </group>
+  );
 };
 
 const calcAcceleration = (x) => {
   const unstackedX = tf.unstack(x);
-  const accelerations = Array(numberOfPlanets).fill(tf.tensor1d([0, 0, 0]));
+  const accelerations = Array(numOfPlanets).fill(tf.tensor1d([0, 0, 0]));
 
   for (let i = 0; i < numOfPlanets; i++) {
     const iX = unstackedX[i];
