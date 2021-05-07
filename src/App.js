@@ -1,10 +1,13 @@
 import "./App.css";
 import Sol from "./components/solar-system";
+import { Canvas } from "react-three-fiber";
 
 function App() {
   return (
     <div className="App">
-      <Sol />
+      <Canvas>
+        <Sol />
+      </Canvas>
     </div>
   );
 }
