@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import data from "../planet-data.json";
 
@@ -14,6 +14,7 @@ const velocityInitial = tf.tensor2d(velocityInitialArray, [numberOfPlanets, 3]);
 const G = tf.scalar(data.G);
 
 export const Sol = ({ dt = 0.1 }) => {
+  const [pos, setPos] = useState(xPosInitialArray);
   // useRef to prevent re-render on change
   const xPos = useRef(xPosInitial);
   const velocity = useRef(velocityInitial);
@@ -27,6 +28,17 @@ export const Sol = ({ dt = 0.1 }) => {
       const newVelocity = velocity.current.add(tf.mul(acceleration, dtTensor));
 
       return [newXPos, newVelocity];
+    });
+
+    // release memory of old values
+    tf.dispose(xPos.current, velocity);
+
+    // update x postiion and velocity
+    xPos.current = newXPos;
+    velocity.current = newVelocity;
+
+    newXPos.array().then((newPos) => {
+      setPos(newPos);
     });
   });
   compute();
