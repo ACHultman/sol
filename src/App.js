@@ -1,7 +1,7 @@
 import Sol from "./components/solar-system";
 import { Canvas } from "react-three-fiber";
 import React from "react";
-import "./app.css";
+import "./App.css";
 
 function App() {
   return (
