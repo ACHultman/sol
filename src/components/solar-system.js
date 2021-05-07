@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import * as tf from "@tensorflow/tfjs";
 import data from "../planet-data.json";
 
@@ -6,17 +6,28 @@ const numOfPlanets = data.planets.length;
 
 const numberOfPlanets = data.planets.length;
 
-const xInitialArray = data.planets.map((planet) => planet.x);
-const vInitialArray = data.planets.map((planet) => planet.v);
+const xPosInitialArray = data.planets.map((planet) => planet.x);
+const velocityInitialArray = data.planets.map((planet) => planet.v);
 const masses = data.planets.map((planet) => planet.m);
-const xInitial = tf.tensor2d(xInitialArray, [numberOfPlanets, 3]);
-const vInitial = tf.tensor2d(vInitialArray, [numberOfPlanets, 3]);
+const xPosInitial = tf.tensor2d(xPosInitialArray, [numberOfPlanets, 3]);
+const velocityInitial = tf.tensor2d(velocityInitialArray, [numberOfPlanets, 3]);
 const G = tf.scalar(data.G);
 
-export const Sol = () => {
+export const Sol = ({ dt = 0.1 }) => {
+  // useRef to prevent re-render on change
+  const xPos = useRef(xPosInitial);
+  const velocity = useRef(velocityInitial);
+  // create dtTensor from dt
+  const dtTensor = useMemo(() => tf.scalar(dt), [dt]);
   const compute = useCallback(() => {
-    const a = calcAcceleration(xInitial);
-    a.print();
+    // release from memory
+    const [newXPos, newVelocity] = tf.tidy(() => {
+      const acceleration = calcAcceleration(xPosInitial);
+      const newXPos = xPos.current.add(tf.mul(velocity.current, dtTensor));
+      const newVelocity = velocity.current.add(tf.mul(acceleration, dtTensor));
+
+      return [newXPos, newVelocity];
+    });
   });
   compute();
   return <div></div>;
